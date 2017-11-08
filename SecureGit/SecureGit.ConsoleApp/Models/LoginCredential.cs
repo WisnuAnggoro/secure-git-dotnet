@@ -1,4 +1,4 @@
-namespace SecureGit.WebApi.Models
+namespace SecureGit.ConsoleApp.Models
 {
     public class LoginCredential
     {

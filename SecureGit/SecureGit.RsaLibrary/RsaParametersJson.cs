@@ -1,4 +1,4 @@
-namespace SecureGit.Models
+namespace SecureGit.RsaLibrary
 {
     public class RsaParametersJson
     {

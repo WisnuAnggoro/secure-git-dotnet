@@ -2,9 +2,8 @@ using System;
 using System.Security.Cryptography;
 using System.Xml;
 using Newtonsoft.Json;
-using SecureGit.Models;
 
-namespace SecureGit.Logics
+namespace SecureGit.RsaLibrary
 {
     internal static class RsaLibExtensions
     {

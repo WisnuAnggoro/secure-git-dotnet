@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using SecureGit.WebApi.Logics;
 using SecureGit.WebApi.Models;
 
 namespace SecureGit.WebApi
@@ -37,7 +40,8 @@ namespace SecureGit.WebApi
         {
             if (IsValidLoginData(
                 loginCredential.Username, 
-                loginCredential.Password))
+                loginCredential.Password,
+                loginCredential.RsaPublicKey))
                 return new ObjectResult(
                     GenerateToken(loginCredential.Username));
 
@@ -46,9 +50,22 @@ namespace SecureGit.WebApi
 
         private bool IsValidLoginData(
             string username,
-            string password)
+            string password,
+            string key)
         {
-            return !String.IsNullOrEmpty(username) && username == password;
+            if(String.IsNullOrEmpty(username) ||
+                String.IsNullOrEmpty(password) ||
+                String.IsNullOrEmpty(key))
+                return false;
+
+            UserManagement um = new UserManagement(
+                Path.Combine(
+                    _settingOptions.UserDBPath,
+                    _settingOptions.UserDBFileName));
+                    
+            return um.IsCredentialValid(
+                username,
+                password);
         }
 
         private string GenerateToken(
