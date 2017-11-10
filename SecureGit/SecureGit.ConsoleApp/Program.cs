@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security;
 using System.Threading.Tasks;
 using SecureGit.ConsoleApp.Logics;
 using SecureGit.RsaLibrary;
@@ -86,11 +87,29 @@ namespace SecureGit.ConsoleApp
                 // }
 
                 // Connect to server
-                bool bo = _client.Connect();
+                bool bo = _client.RequestKey();
 
                 if (!bo)
                 {
                     Console.WriteLine("Cannot connect to server.");
+                    Console.WriteLine(_client.LastErrorMessage);
+                    return;
+                }
+
+                // Login
+                SecureString passw = new SecureString();
+                passw.AppendChar('u');
+                passw.AppendChar('s');
+                passw.AppendChar('e');
+                passw.AppendChar('r');
+                bo = _client.Login(
+                    "wisnu",
+                    passw);
+
+                if (!bo)
+                {
+                    Console.WriteLine("Cannot login to server.");
+                    Console.WriteLine(_client.LastErrorMessage);
                     return;
                 }
 

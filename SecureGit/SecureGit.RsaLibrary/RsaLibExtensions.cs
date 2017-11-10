@@ -1,7 +1,10 @@
 using System;
+using System.Runtime.InteropServices;
+using System.Security;
 using System.Security.Cryptography;
-using System.Xml;
+// using System.Xml;
 using Newtonsoft.Json;
+using SecureGit.RsaLibrary.Models;
 
 namespace SecureGit.RsaLibrary
 {
@@ -10,12 +13,12 @@ namespace SecureGit.RsaLibrary
         #region JSON
         internal static void FromJsonString(this RSA rsa, string jsonString)
         {
-            if(String.IsNullOrEmpty(jsonString))
+            if (String.IsNullOrEmpty(jsonString))
                 throw new ArgumentNullException();
 
             try
             {
-                var paramsJson = JsonConvert.DeserializeObject<RsaParametersJson>(
+                var paramsJson = JsonConvert.DeserializeObject<RsaPrivateKey>(
                     jsonString);
 
                 RSAParameters parameters = new RSAParameters();
@@ -40,7 +43,7 @@ namespace SecureGit.RsaLibrary
         {
             RSAParameters parameters = rsa.ExportParameters(includePrivateParameters);
 
-            var paramsJson = new RsaParametersJson()
+            var paramsJson = new RsaPrivateKey()
             {
                 Modulus = parameters.Modulus != null ? Convert.ToBase64String(parameters.Modulus) : null,
                 Exponent = parameters.Exponent != null ? Convert.ToBase64String(parameters.Exponent) : null,
@@ -52,7 +55,53 @@ namespace SecureGit.RsaLibrary
                 D = parameters.D != null ? Convert.ToBase64String(parameters.D) : null
             };
 
-            return JsonConvert.SerializeObject(paramsJson);
+            return JsonConvert.SerializeObject(paramsJson, Formatting.Indented);
+        }
+        #endregion
+
+        #region SecureString
+        internal static SecureString ToJsonSecureString(
+            this RSA rsa,
+            bool includePrivateParameters)
+        {
+            return rsa
+                .ToJsonString(includePrivateParameters)
+                .ToSecureString();
+        }
+
+        internal static SecureString ToSecureString(
+            this string plainString)
+        {
+            if (plainString == null)
+                return null;
+
+            SecureString secureString = new SecureString();
+            foreach (char c in plainString.ToCharArray())
+            {
+                secureString.AppendChar(c);
+            }
+            return secureString;
+        }
+
+        internal static string ToPlainString(
+            this SecureString secureString
+        )
+        {
+            string plainString = "";
+
+            IntPtr bstr = Marshal.SecureStringToBSTR(
+                secureString);
+
+            try
+            {
+                plainString = Marshal.PtrToStringBSTR(bstr);
+            }
+            finally
+            {
+                Marshal.FreeBSTR(bstr);
+            }
+
+            return plainString;
         }
         #endregion
 

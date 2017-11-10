@@ -1,6 +1,6 @@
-namespace SecureGit.RsaLibrary
+namespace SecureGit.RsaLibrary.Models
 {
-    public class RsaParametersJson
+    public class RsaPrivateKey
     {
         public string Modulus { get; set; }
         public string Exponent { get; set; }

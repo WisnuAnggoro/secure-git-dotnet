@@ -34,28 +34,50 @@ namespace SecureGit.WebApi
         // }
 
         [HttpPost]
+        // public IActionResult Create(
+        //     [FromBody]LoginCredential loginCredential
+        // )
+        // {
+        //     if (IsValidLoginData(
+        //         loginCredential.Username, 
+        //         loginCredential.Password,
+        //         loginCredential.RsaPublicKey))
+        //         return new ObjectResult(
+        //             GenerateToken(loginCredential.Username));
+
+        //     return BadRequest();
+        // }
         public IActionResult Create(
-            [FromBody]LoginCredential loginCredential
+            [FromBody]PacketBox packetBox
         )
         {
-            if (IsValidLoginData(
+            try
+            {
+
+                if (IsValidLoginData(
                 loginCredential.Username, 
                 loginCredential.Password,
                 loginCredential.RsaPublicKey))
                 return new ObjectResult(
                     GenerateToken(loginCredential.Username));
 
+            }
+            catch
+            {
             return BadRequest();
+
+            }
         }
+
 
         private bool IsValidLoginData(
             string username,
             string password,
-            string key)
+            RsaPublicKey key)
         {
             if(String.IsNullOrEmpty(username) ||
                 String.IsNullOrEmpty(password) ||
-                String.IsNullOrEmpty(key))
+                key == null)
                 return false;
 
             UserManagement um = new UserManagement(

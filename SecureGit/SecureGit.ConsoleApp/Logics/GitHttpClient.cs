@@ -1,21 +1,28 @@
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using SecureGit.ConsoleApp.Helpers;
 using SecureGit.ConsoleApp.Models;
 using SecureGit.RsaLibrary;
+using SecureGit.RsaLibrary.Models;
 
 namespace SecureGit.ConsoleApp.Logics
 {
     public class GitHttpClient
     {
         private HttpClient _client;
+        private RsaLib _rsaLib;
+        private SecureString _privateKey;
+        private SecureString _publicKey;
+        private SecureString _apiPublicKey;
 
         public string ServerPublicKey { get; private set; }
 
         public string LastResponseMessage { get; private set; }
+        public string LastErrorMessage { get; private set; }
 
         public GitHttpClient() : this("localhost", 5000)
         {
@@ -41,95 +48,118 @@ namespace SecureGit.ConsoleApp.Logics
             _client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue(
                     "application/json"));
-            
+
+            _rsaLib = new RsaLib();
+            _rsaLib.GenerateKeyPairs(
+                out _privateKey,
+                out _publicKey);
         }
 
-        public bool Connect()
+        public bool RequestKey()
         {
-            Task<string> res = Get(
-                "connect");
+            try
+            {
+                Task<string> tRes = Get(
+                    "request/key");
 
-            if(res.Result == "")
+                if (String.IsNullOrEmpty(tRes.Result))
+                    return false;
+
+                // ServerPublicKey = res.Result;
+
+                _apiPublicKey = _rsaLib.ConvertToSecureString(
+                    tRes.Result);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LastErrorMessage = ex.Message;
                 return false;
-            
-            ServerPublicKey = res.Result;
-            return true;
+            }
         }
 
-        public string Login(
+        public bool Login(
             string username,
-            string password,
-            string rsaPublicKey
-        )
+            SecureString password)
         {
             // Creating login credential
             LoginCredential logCredential = new LoginCredential()
             {
                 Username = username,
-                Password = password,
-                RsaPublicKey = rsaPublicKey
+                Password = _rsaLib.ExtractSecureString(password),
+                RsaPublicKey = JsonConvert.DeserializeObject<RsaPublicKey>(
+                    _rsaLib.ExtractSecureString(
+                        _publicKey))
             };
 
             // Serializing to JSON
             string logCredString = JsonConvert.SerializeObject(
-                logCredential, Formatting.Indented);
+                logCredential);
 
-            // Encrypting the json using server public key
-            RsaLib rsa = new RsaLib();
-
-            Task<bool> s = Post(
+            // Encrypting the logCredential using server public key
+            // before sending to server
+            Task<bool> t = Post(
                 "login",
-                rsa.Encrypt(
+                _rsaLib.Encrypt(
                     logCredString,
-                    ServerPublicKey)
+                    _apiPublicKey)
             );
 
-            return "";
+            return t.Result;
         }
 
         public async Task<string> Get(
             string QueryPath)
         {
-            object objContent = null;
-            string contentString = "";
+            // object objContent = null;
+            string contentString = null;
 
-            HttpResponseMessage response = 
+            HttpResponseMessage response =
                 await _client.GetAsync(
                     $"{_client.BaseAddress.ToString()}/{QueryPath.TrimStart('/')}");
 
-            if(response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                objContent = await response
+                contentString = await response
                     .Content
-                    .ReadAsAsync<object>();
+                    .ReadAsAsync<string>();
 
-                string json = JsonConvert.SerializeObject(objContent);
+                // string json = JsonConvert.SerializeObject(objContent);
             }
 
-            if(objContent != null)
-            {
-                // Check if it's JSON
-                // bool bo = DataHelper.GetJsonStringFromObject(
-                //     objContent,
-                //     out contentString);
-                DataHelper.GetJsonStringFromObject(
-                    objContent,
-                    out contentString);
-            }
+            // if(contentString != null)
+            // {
+            //     // Check if it's JSON
+            //     // bool bo = DataHelper.GetJsonStringFromObject(
+            //     //     objContent,
+            //     //     out contentString);
+            //     // DataHelper.GetJsonStringFromObject(
+            //     //     objContent,
+            //     //     out contentString);
+            //     contentString = (string)objContent;
+            // }
 
             return contentString;
         }
 
         public async Task<bool> Post(
             string QueryPath,
-            string JsonStringResource)
+            string JsonStringResource,
+            string JwtToken = null)
         {
-            HttpResponseMessage response = 
+            if (!String.IsNullOrWhiteSpace(JwtToken))
+                _client.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", JwtToken);
+
+            // string s = _client.DefaultRequestHeaders.Authorization.Scheme;
+
+            HttpResponseMessage response =
                 await _client.PostAsJsonAsync(
                     $"{_client.BaseAddress.ToString()}/{QueryPath.TrimStart('/')}",
                     JsonStringResource);
 
-            if(!response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
                 LastResponseMessage = "";
                 return false;

@@ -6,7 +6,7 @@ using SecureGit.WebApi.Models;
 
 namespace SecureGit.WebApi
 {
-    [Route("v1/connect")]
+    [Route("v1/request/key")]
     public class KeyExchangeController : Controller
     {
         private readonly SettingOptions _settingOptions;
@@ -17,22 +17,20 @@ namespace SecureGit.WebApi
         }
 
         [HttpGet]
-        public IActionResult GenerateKey()
+        public IActionResult SendPublicKey()
         {
-            RsaLib rsa = new RsaLib();
-
-            // rsa.Main();
-            if (rsa.GenerateKeyPairs(
-                _settingOptions.RsaKeyDirectory,
-                _settingOptions.RsaPrivateKeyName,
-                _settingOptions.RsaPublicKeyName))
+            try
+            {
                 return new ObjectResult(
                     System.IO.File.ReadAllText(
                         Path.Combine(
                             _settingOptions.RsaKeyDirectory,
                             _settingOptions.RsaPublicKeyName)));
-            else
+            }
+            catch
+            {
                 return NoContent();
+            }
         }
 
         // [HttpPost]

@@ -99,7 +99,6 @@ namespace SecureGit.RsaLibrary
             }
 
         }
-
         public byte[] RSADecrypt(
             byte[] DataToDecrypt,
             RSAParameters RSAKeyInfo,
