@@ -5,7 +5,6 @@ using System.Net.Http.Headers;
 using System.Security;
 using System.Threading.Tasks;
 using SecureGit.ConsoleApp.Logics;
-using SecureGit.RsaLibrary;
 
 namespace SecureGit.ConsoleApp
 {
@@ -95,6 +94,11 @@ namespace SecureGit.ConsoleApp
                     Console.WriteLine(_client.LastErrorMessage);
                     return;
                 }
+
+                // bo = await _client.Post(
+                //     "login",
+                //     "{\"Header\":\"heads\",\"Payload\":\"payloads\"}"
+                // );
 
                 // Login
                 SecureString passw = new SecureString();

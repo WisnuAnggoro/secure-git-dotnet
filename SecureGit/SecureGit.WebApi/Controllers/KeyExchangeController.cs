@@ -32,29 +32,5 @@ namespace SecureGit.WebApi
                 return NoContent();
             }
         }
-
-        // [HttpPost]
-        // public IActionResult GenerateKey(
-        //     [FromBody] object JsonClientPubKey)
-        // {
-        //     RsaLib rsa = new RsaLib();
-
-        //     // string aa = JsonClientPubKey;
-        //     if (JsonClientPubKey == null)
-        //         return BadRequest();
-
-        //     // rsa.Main();
-        //     if (rsa.GenerateKeyPairs(
-        //         _settingOptions.RsaKeyDirectory,
-        //         _settingOptions.RsaPrivateKeyName,
-        //         _settingOptions.RsaPublicKeyName))
-        //         return new ObjectResult(
-        //             System.IO.File.ReadAllText(
-        //                 Path.Combine(
-        //                     _settingOptions.RsaKeyDirectory,
-        //                     _settingOptions.RsaPublicKeyName)));
-        //     else
-        //         return NoContent();
-        // }
     }
 }

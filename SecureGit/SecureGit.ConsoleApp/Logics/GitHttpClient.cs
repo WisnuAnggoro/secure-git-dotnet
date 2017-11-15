@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using SecureGit.ConsoleApp.Helpers;
-using SecureGit.ConsoleApp.Models;
+using SecureGit.CryptoLibrary;
+using SecureGit.CryptoLibrary.Extensions;
+using SecureGit.CryptoLibrary.Models;
 using SecureGit.RsaLibrary;
 using SecureGit.RsaLibrary.Models;
 
@@ -15,9 +18,12 @@ namespace SecureGit.ConsoleApp.Logics
     {
         private HttpClient _client;
         private RsaLib _rsaLib;
+        private AesLib _aesLib;
+        private RngLib _rngLib;
+        private JsonLib _jsonLib;
         private SecureString _privateKey;
-        private SecureString _publicKey;
-        private SecureString _apiPublicKey;
+        private string _publicKey;
+        private string _apiPublicKey;
 
         public string ServerPublicKey { get; private set; }
 
@@ -53,6 +59,10 @@ namespace SecureGit.ConsoleApp.Logics
             _rsaLib.GenerateKeyPairs(
                 out _privateKey,
                 out _publicKey);
+
+            _aesLib = new AesLib();
+            _rngLib = new RngLib();
+            _jsonLib = new JsonLib();
         }
 
         public bool RequestKey()
@@ -67,8 +77,7 @@ namespace SecureGit.ConsoleApp.Logics
 
                 // ServerPublicKey = res.Result;
 
-                _apiPublicKey = _rsaLib.ConvertToSecureString(
-                    tRes.Result);
+                _apiPublicKey = tRes.Result;
 
                 return true;
             }
@@ -83,28 +92,53 @@ namespace SecureGit.ConsoleApp.Logics
             string username,
             SecureString password)
         {
+            string ss = password.ToPlainString();
+
             // Creating login credential
             LoginCredential logCredential = new LoginCredential()
             {
                 Username = username,
-                Password = _rsaLib.ExtractSecureString(password),
-                RsaPublicKey = JsonConvert.DeserializeObject<RsaPublicKey>(
-                    _rsaLib.ExtractSecureString(
-                        _publicKey))
+                Password = password.ToPlainString(),
+                RsaPublicKey = _publicKey
             };
 
             // Serializing to JSON
-            string logCredString = JsonConvert.SerializeObject(
-                logCredential);
+            SecureString payload = 
+                JsonConvert.SerializeObject(
+                    logCredential)
+                .ToSecureString();
+
+            // // Encrypt payload
+            // SecureString aesKey = _rngLib.GenerateRandomSecureString(
+            //     _aesLib.KeySize);
+            // string encryptedPayload = _aesLib.Encrypt(
+            //     payload,
+            //     aesKey);
+
+            // // Encrypt AES Key
+            // string encryptedAesKey = _rsaLib.Encrypt(
+            //     aesKey,
+            //     _apiPublicKey);
+
+            // // Wrap Packet
+            // Packet packet = new Packet()
+            // {
+            //     Header = encryptedAesKey,
+            //     Payload = encryptedPayload
+            // };
+
+            PacketLib packetLib = new PacketLib();
+            Packet packet = packetLib.WrapPacket(
+                payload, 
+                _apiPublicKey);
+
+            string json = JsonConvert.SerializeObject(packet);
 
             // Encrypting the logCredential using server public key
             // before sending to server
             Task<bool> t = Post(
                 "login",
-                _rsaLib.Encrypt(
-                    logCredString,
-                    _apiPublicKey)
-            );
+                json);
 
             return t.Result;
         }
@@ -148,16 +182,33 @@ namespace SecureGit.ConsoleApp.Logics
             string JsonStringResource,
             string JwtToken = null)
         {
-            if (!String.IsNullOrWhiteSpace(JwtToken))
-                _client.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", JwtToken);
+            // if (!String.IsNullOrWhiteSpace(JwtToken))
+            //     _client.DefaultRequestHeaders.Authorization =
+            //         new AuthenticationHeaderValue("Bearer", JwtToken);
 
-            // string s = _client.DefaultRequestHeaders.Authorization.Scheme;
+            // // string s = _client.DefaultRequestHeaders.Authorization.Scheme;
+
+            // _client.DefaultRequestHeaders.Accept.Clear();
+            // _client.DefaultRequestHeaders.Accept.Add(
+            //     new MediaTypeWithQualityHeaderValue(
+            //         "application/json"));
 
             HttpResponseMessage response =
                 await _client.PostAsJsonAsync(
                     $"{_client.BaseAddress.ToString()}/{QueryPath.TrimStart('/')}",
                     JsonStringResource);
+
+            // var content = new FormUrlEncodedContent(new[]
+            // {
+            //     new KeyValuePair<string, string>(
+            //         "packet", 
+            //         JsonStringResource)
+            // });
+
+            // HttpResponseMessage response =
+            //     await _client.PostAsync(
+            //         $"{_client.BaseAddress.ToString()}/{QueryPath.TrimStart('/')}",
+            //         content);           
 
             if (!response.IsSuccessStatusCode)
             {
