@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.3" />
+    <PackageReference Include="RestSharp" Version="106.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SecureGit.CryptoLibrary\SecureGit.CryptoLibrary.csproj" />

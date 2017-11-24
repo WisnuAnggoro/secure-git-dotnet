@@ -17,6 +17,7 @@ namespace SecureGit.CryptoLibrary
             _aes = new AesLib();
             _rsa = new RsaLib();
             _rng = new RngLib();
+            _jsonLib = new JsonLib();
         }
 
         public Packet WrapPacket(
@@ -85,6 +86,27 @@ namespace SecureGit.CryptoLibrary
             return UnwrapPacket(
                 packet,
                 RsaPrivateKey);
+        }
+
+        public bool IsValidRsaPublicKey(
+            string RsaPublicKey)
+        {
+            try
+            {
+                // Try to encrypt 32 byte random characters
+                // (the result is ignored)
+                _rsa.Encrypt(
+                    _rng.GenerateRandomSecureString(32),
+                    RsaPublicKey);
+
+                // If success (and no exception is thrown), 
+                // the key must be valid
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

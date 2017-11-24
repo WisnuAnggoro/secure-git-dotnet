@@ -21,11 +21,12 @@ namespace SecureGit.WebApi
         {
             try
             {
-                return new ObjectResult(
-                    System.IO.File.ReadAllText(
+                string s = System.IO.File.ReadAllText(
                         Path.Combine(
                             _settingOptions.RsaKeyDirectory,
-                            _settingOptions.RsaPublicKeyName)));
+                            _settingOptions.RsaPublicKeyName));
+                // return new ObjectResult(s);
+                return Content(s);
             }
             catch
             {

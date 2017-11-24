@@ -20,15 +20,19 @@ namespace SecureGit.WebApi
     public class TokenController : Controller
     {
         private readonly SettingOptions _settingOptions;
+        private readonly UserManagement _userManagement;
 
         public TokenController(IOptions<SettingOptions> optionAccessor)
         {
             _settingOptions = optionAccessor.Value;
+            
+            _userManagement = new UserManagement(
+                _settingOptions.ConnectionString);
         }
 
         [HttpPost]
         public IActionResult Create(
-            [FromBody]string PacketString)
+            [FromBody]Packet packet)
         {
             try
             {
@@ -36,7 +40,7 @@ namespace SecureGit.WebApi
                 PacketLib packetLib = new PacketLib();
                 JsonLib jsonLib = new JsonLib();
 
-                Packet packet = jsonLib.Deserialize<Packet>(PacketString);
+                // Packet packet = jsonLib.Deserialize<Packet>(PacketString);
 
                 // Decrypt packet to get the payload
                 SecureString payload = packetLib.UnwrapPacket(
@@ -51,14 +55,27 @@ namespace SecureGit.WebApi
                 LoginCredential loginCredential = jsonLib.Deserialize<LoginCredential>(
                     payload.ToPlainString());
 
+                // Check the RSA public key validity
+                if(!packetLib.IsValidRsaPublicKey(
+                    loginCredential.RsaPublicKey))
+                    return BadRequest();
+
                 // Check Login Credential validity
                 // then generate token if valid
                 if (IsValidLoginData(
                     loginCredential.Username,
-                    loginCredential.Password,
-                    loginCredential.RsaPublicKey))
-                    return new ObjectResult(
+                    loginCredential.Password))
+                {
+                    // Save user's public key
+                    if(!_userManagement.UpdateUserPublicKey(
+                        loginCredential.Username,
+                        loginCredential.RsaPublicKey))
+                        return BadRequest();
+
+                    // Return JWT Token
+                    return Content(
                         GenerateToken(loginCredential.Username));
+                }
                 else
                     return Unauthorized();
             }
@@ -69,23 +86,15 @@ namespace SecureGit.WebApi
             }
         }
 
-
         private bool IsValidLoginData(
             string username,
-            string password,
-            string key)
+            string password)
         {
             if (String.IsNullOrEmpty(username) ||
-                String.IsNullOrEmpty(password) ||
-                key == null)
+                String.IsNullOrEmpty(password))
                 return false;
-
-            UserManagement um = new UserManagement(
-                Path.Combine(
-                    _settingOptions.UserDBPath,
-                    _settingOptions.UserDBFileName));
-
-            return um.IsCredentialValid(
+                
+            return _userManagement.IsCredentialValid(
                 username,
                 password);
         }

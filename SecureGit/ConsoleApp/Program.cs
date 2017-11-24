@@ -20,14 +20,14 @@ namespace ConsoleApp
             //     Console.WriteLine("Tree: {0}", commit.Tree);
             // }
 
-            var client = new RestClient("http://localhost:5000/v1");
-            var request = new RestRequest("request/key", Method.GET);
-            var response = client.Execute(request);
+            // var client = new RestClient("http://localhost:5000/v1");
+            // var request = new RestRequest("request/key", Method.GET);
+            // var response = client.Execute(request);
 
-            request.Resource = "login";
-            request.Method = Method.POST;
-            request.AddJsonBody("{\"Header\":\"heads\",\"Payload\":\"load\"}");
-            response = client.Execute(request);
+            // request.Resource = "login";
+            // request.Method = Method.POST;
+            // request.AddJsonBody("{\"Header\":\"heads\",\"Payload\":\"load\"}");
+            // response = client.Execute(request);
         }
     }
 }
