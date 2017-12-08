@@ -7,8 +7,12 @@ using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using SecureGit.CryptoLibrary;
+using SecureGit.CryptoLibrary.Models;
+using SecureGit.CryptoLibrary.Extensions;
 using SecureGit.WebApi.Logics;
 using SecureGit.WebApi.Models;
+using System.Security;
 
 namespace SecureGit.WebApi
 {
@@ -16,76 +20,81 @@ namespace SecureGit.WebApi
     public class TokenController : Controller
     {
         private readonly SettingOptions _settingOptions;
+        private readonly UserManagement _userManagement;
 
         public TokenController(IOptions<SettingOptions> optionAccessor)
         {
             _settingOptions = optionAccessor.Value;
+            
+            _userManagement = new UserManagement(
+                _settingOptions.ConnectionString);
         }
 
-        // [HttpPost]
-        // public IActionResult Create(
-        //     [FromBody]string username,
-        //     [FromBody]string password)
-        // {
-        //     if (IsValidLoginData(username, password))
-        //         return new ObjectResult(GenerateToken(username));
-
-        //     return BadRequest();
-        // }
-
         [HttpPost]
-        // public IActionResult Create(
-        //     [FromBody]LoginCredential loginCredential
-        // )
-        // {
-        //     if (IsValidLoginData(
-        //         loginCredential.Username, 
-        //         loginCredential.Password,
-        //         loginCredential.RsaPublicKey))
-        //         return new ObjectResult(
-        //             GenerateToken(loginCredential.Username));
-
-        //     return BadRequest();
-        // }
         public IActionResult Create(
-            [FromBody]PacketBox packetBox
-        )
+            [FromBody]Packet packet)
         {
             try
             {
+                // Get PacketLib and JsonLib instance
+                PacketLib packetLib = new PacketLib();
+                JsonLib jsonLib = new JsonLib();
 
+                // Packet packet = jsonLib.Deserialize<Packet>(PacketString);
+
+                // Decrypt packet to get the payload
+                SecureString payload = packetLib.UnwrapPacket(
+                    packet,
+                    System.IO.File.ReadAllText(
+                        Path.Combine(
+                            _settingOptions.RsaKeyDirectory,
+                            _settingOptions.RsaPrivateKeyName))
+                        .ToSecureString());
+
+                // Deserialize payload
+                LoginCredential loginCredential = jsonLib.Deserialize<LoginCredential>(
+                    payload.ToPlainString());
+
+                // Check the RSA public key validity
+                if(!packetLib.IsValidRsaPublicKey(
+                    loginCredential.RsaPublicKey))
+                    return BadRequest();
+
+                // Check Login Credential validity
+                // then generate token if valid
                 if (IsValidLoginData(
-                loginCredential.Username, 
-                loginCredential.Password,
-                loginCredential.RsaPublicKey))
-                return new ObjectResult(
-                    GenerateToken(loginCredential.Username));
+                    loginCredential.Username,
+                    loginCredential.Password))
+                {
+                    // Save user's public key
+                    if(!_userManagement.UpdateUserPublicKey(
+                        loginCredential.Username,
+                        loginCredential.RsaPublicKey))
+                        return BadRequest();
 
+                    // Return JWT Token
+                    return Content(
+                        GenerateToken(loginCredential.Username));
+                }
+                else
+                    return Unauthorized();
             }
-            catch
+            catch(Exception ex)
             {
-            return BadRequest();
-
+                string s = ex.Message;
+                return BadRequest();
             }
         }
 
-
         private bool IsValidLoginData(
             string username,
-            string password,
-            RsaPublicKey key)
+            string password)
         {
-            if(String.IsNullOrEmpty(username) ||
-                String.IsNullOrEmpty(password) ||
-                key == null)
+            if (String.IsNullOrEmpty(username) ||
+                String.IsNullOrEmpty(password))
                 return false;
-
-            UserManagement um = new UserManagement(
-                Path.Combine(
-                    _settingOptions.UserDBPath,
-                    _settingOptions.UserDBFileName));
-                    
-            return um.IsCredentialValid(
+                
+            return _userManagement.IsCredentialValid(
                 username,
                 password);
         }
@@ -96,7 +105,7 @@ namespace SecureGit.WebApi
             var claims = new Claim[]
             {
                 new Claim(
-                    ClaimTypes.Name, 
+                    ClaimTypes.Name,
                     username),
                 // new Claim(
                 //     JwtRegisteredClaimNames.Nbf, 
@@ -115,7 +124,7 @@ namespace SecureGit.WebApi
                     new SigningCredentials(
                         new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(
-                                _settingOptions.JwtPrivateKey)), 
+                                _settingOptions.JwtPrivateKey)),
                         SecurityAlgorithms.HmacSha256)
                 ),
                 // new JwtPayload(claims)

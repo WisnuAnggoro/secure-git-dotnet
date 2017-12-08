@@ -30,6 +30,12 @@ namespace SecureGit.WebApi
             services.Configure<SettingOptions>(Configuration);
 
             services.AddMvc();
+            // services.Add(
+            //     new ServiceDescriptor(
+            //         typeof(DBContext), 
+            //         new DBContext(
+            //             Configuration.GetConnectionString(
+            //                 "DefaultConnection"))));
 
             services.AddAuthentication(options => {
                 options.DefaultAuthenticateScheme = "Jwt";

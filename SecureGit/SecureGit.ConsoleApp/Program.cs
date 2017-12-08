@@ -5,7 +5,6 @@ using System.Net.Http.Headers;
 using System.Security;
 using System.Threading.Tasks;
 using SecureGit.ConsoleApp.Logics;
-using SecureGit.RsaLibrary;
 
 namespace SecureGit.ConsoleApp
 {
@@ -96,6 +95,11 @@ namespace SecureGit.ConsoleApp
                     return;
                 }
 
+                // bo = await _client.Post(
+                //     "login",
+                //     "{\"Header\":\"heads\",\"Payload\":\"payloads\"}"
+                // );
+
                 // Login
                 SecureString passw = new SecureString();
                 passw.AppendChar('u');
@@ -113,6 +117,31 @@ namespace SecureGit.ConsoleApp
                     return;
                 }
 
+                string s = _client.GetProjectList();
+
+                if (String.IsNullOrEmpty(s))
+                {
+                    Console.WriteLine("Cannot get project list.");
+                    Console.WriteLine(_client.LastErrorMessage);
+                    return;
+                }
+
+                SecureString passw1 = new SecureString();
+                passw.AppendChar('u');
+                passw.AppendChar('s');
+                passw.AppendChar('e');
+                passw.AppendChar('r');
+                passw.AppendChar('1');
+
+                bool b = _client.ChangePassword(
+                    "wisnu",
+                    passw,
+                    passw1
+                );
+
+                // string ss = _client.Post(
+                //     "user/password/reset", 
+                //     "{\"Header\":\"b\",\"Payload\":\"c\"}");
                 Console.WriteLine("");
 
             }
