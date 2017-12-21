@@ -17,6 +17,8 @@ namespace SecureGit.WebApi.Logics
 
         private readonly DatabaseManagement _dbManagement;
 
+        private readonly string connStrTemp;
+
         public UserManagement(
             string DBConnectionString)
         {
@@ -24,6 +26,8 @@ namespace SecureGit.WebApi.Logics
             _dbManagement = new DatabaseManagement(
                 DBConnectionString);
             _users = GetUserList();
+
+            connStrTemp = DBConnectionString;
         }
 
         // private List<UserDatabase> GetUserList(
@@ -115,11 +119,21 @@ namespace SecureGit.WebApi.Logics
                 username, 
                 oldPassword)) 
                 return false;
-            
-            MySqlDataReader reader = _dbManagement.RunSqlCommand(
-                $"update Users set Password = '{StringToMd5Hash(newPassword)}' where Username = '{username}'");
 
-            return reader != null;
+            string sqlCommand = $"update Users set Password = '{StringToMd5Hash(newPassword)}' where Username = '{username}'";
+            
+            // MySqlDataReader reader = _dbManagement.RunSqlCommand(
+            //     sqlCommand);
+
+            return _dbManagement.RunSqlCommand(
+                sqlCommand,
+                reader => 
+                {
+                    return reader != null;
+                }
+            );
+
+            // return reader != null;
         }
 
         public bool UpdateUserPublicKey(
@@ -129,10 +143,20 @@ namespace SecureGit.WebApi.Logics
             if (!FindIfUserExist(username))
                 return false;
             
-            MySqlDataReader reader = _dbManagement.RunSqlCommand(
-                $"update Users set PublicKey = '{publicKey}' where Username = '{username}'");
+            // MySqlDataReader reader = _dbManagement.RunSqlCommand(
+            //     $"update Users set PublicKey = '{publicKey}' where Username = '{username}'");
 
-            return reader != null;
+            // return reader != null;
+
+            string sqlCommand = $"update Users set PublicKey = '{publicKey}' where Username = '{username}'";
+
+            return _dbManagement.RunSqlCommand(
+                sqlCommand,
+                reader => 
+                {
+                    return reader != null;
+                }
+            );
         }
 
         public string FetchUserPublicKey(
@@ -141,18 +165,36 @@ namespace SecureGit.WebApi.Logics
             if (!FindIfUserExist(username))
                 return null;
 
-            MySqlDataReader reader = _dbManagement.RunSqlCommand(
-                $"select * from Users where Username = '{username}'");
+            // MySqlDataReader reader = _dbManagement.RunSqlCommand(
+            //     $"select * from Users where Username = '{username}'");
 
-            if (reader == null)
-                return null;
+            // if (reader == null)
+            //     return null;
 
-            while (reader.Read())
-            {
-                return reader["PublicKey"].ToString();
-            }
+            // while (reader.Read())
+            // {
+            //     return reader["PublicKey"].ToString();
+            // }
 
-            return null;
+            // return null;
+
+            string sqlCommand = $"select * from Users where Username = '{username}'";
+
+            return _dbManagement.RunSqlCommand(
+                sqlCommand,
+                reader => 
+                {
+                    if (reader == null)
+                        return null;
+
+                    while (reader.Read())
+                    {
+                        return reader["PublicKey"].ToString();
+                    }
+
+                    return null;
+                }
+            );
         }
 
         public bool UpdateUserAssignedProjects(
@@ -162,10 +204,20 @@ namespace SecureGit.WebApi.Logics
             if (!FindIfUserExist(username))
                 return false;
             
-            MySqlDataReader reader = _dbManagement.RunSqlCommand(
-                $"update Users set AssignedProjects = '{projectList}' where Username = '{username}'");
+            // MySqlDataReader reader = _dbManagement.RunSqlCommand(
+            //     $"update Users set AssignedProjects = '{projectList}' where Username = '{username}'");
 
-            return reader != null;
+            // return reader != null;
+
+            string sqlCommand = $"update Users set AssignedProjects = '{projectList}' where Username = '{username}'";
+
+            return _dbManagement.RunSqlCommand(
+                sqlCommand,
+                reader => 
+                {
+                    return reader != null;
+                }
+            );
         }
 
         public string FetchUserAssignedProjects(
@@ -174,18 +226,84 @@ namespace SecureGit.WebApi.Logics
             if (!FindIfUserExist(username))
                 return null;
 
-            MySqlDataReader reader = _dbManagement.RunSqlCommand(
-                $"select * from Users where Username = '{username}'");
+            string sqlCommand = $"select * from Users where Username = '{username}'";
 
-            if (reader == null)
-                return null;
+            // MySqlDataReader reader = _dbManagement.RunSqlCommand(
+            //     sqlCommand);
 
-            while (reader.Read())
-            {
-                return reader["AssignedProjects"].ToString();
-            }
+            // MySqlDataReader reader;
 
-            return null;
+            // bool bo = _dbManagement.RunSqlCommand(
+            //     sqlCommand,
+            //     out reader
+            // );
+
+            // if(bo)
+            // {
+            //     while (reader.Read())
+            //     {
+            //         return reader["AssignedProjects"].ToString();
+            //     }
+            // }
+            
+            // return null;
+
+            // ----------------
+            // try
+            // {
+            //     using (MySqlConnection conn = new MySqlConnection(connStrTemp))
+            //     {
+            //         conn.Open();
+            //         MySqlCommand cmd = new MySqlCommand(
+            //             sqlCommand,
+            //             conn);
+                    
+            //         MySqlDataReader reader = cmd.ExecuteReader();
+
+            //         if (reader == null)
+            //             return null;
+
+            //         while (reader.Read())
+            //         {
+            //             return reader["AssignedProjects"].ToString();
+            //         }
+            //     }
+
+            //     return null;
+            // }
+            // catch
+            // {
+            //     return null;
+            // }
+            // -------------
+
+            // if (reader == null)
+            //     return null;
+
+            // while (reader.Read())
+            // {
+            //     return reader["AssignedProjects"].ToString();
+            // }
+
+            // return null;
+
+            // -----------------
+            return _dbManagement.RunSqlCommand(
+                sqlCommand,
+                reader => 
+                {
+                    if (reader == null)
+                        return null;
+
+                    while (reader.Read())
+                    {
+                        return reader["AssignedProjects"].ToString();
+                    }
+
+                    return null;
+                }
+            );
+            // -----------------
         }
 
         public bool IsCredentialValid(

@@ -26,7 +26,7 @@ namespace SecureGit.WebApi.Controllers
         // public IActionResult GetUserDetails(){
         //     return new ObjectResult(new {
         //         Username = User.Identity.Name
-        //     });                
+        //     });
         // }
 
         // GET api/values
