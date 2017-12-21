@@ -19,18 +19,36 @@ namespace SecureGit.WebApi.Logics
             /*string ProjectListFilePath*/
             string username)
         {
-            MySqlDataReader reader = _dbManagement.RunSqlCommand(
-                $"select * from Users where Username = '{username}'");
+            // MySqlDataReader reader = _dbManagement.RunSqlCommand(
+            //     $"select * from Users where Username = '{username}'");
 
-            if (reader == null)
-                return null;
+            // if (reader == null)
+            //     return null;
 
-            while (reader.Read())
-            {
-                return reader["AssignedProjects"].ToString();
-            }
+            // while (reader.Read())
+            // {
+            //     return reader["AssignedProjects"].ToString();
+            // }
 
-            return null;
+            // return null;
+
+            string sqlCommand = $"select * from Users where Username = '{username}'";
+
+            return _dbManagement.RunSqlCommand(
+                sqlCommand,
+                reader => 
+                {
+                    if (reader == null)
+                        return null;
+
+                    while (reader.Read())
+                    {
+                        return reader["AssignedProjects"].ToString();
+                    }
+
+                    return null;
+                }
+            );
         }
     }
 }

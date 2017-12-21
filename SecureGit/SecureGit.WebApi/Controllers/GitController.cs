@@ -55,5 +55,15 @@ namespace SecureGit.WebApi
                     _userMgm.FetchUserPublicKey(
                         username)));
         }
+
+        public IActionResult Clone()
+        {
+            return BadRequest();
+        }
+
+        public IActionResult Push()
+        {
+            return BadRequest();
+        }
     }
 }

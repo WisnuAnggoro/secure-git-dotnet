@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using MySql.Data.MySqlClient;
 using SecureGit.WebApi.Models;
 
@@ -47,8 +48,34 @@ namespace SecureGit.WebApi.Logics
         //     return "";
         // }
 
-        public MySqlDataReader RunSqlCommand(
-            string SqlCommand)
+        // public MySqlDataReader RunSqlCommand(
+        //     string SqlCommand)
+        // {
+        //     try
+        //     {
+        //         using (MySqlConnection conn = new MySqlConnection(ConnectionString))
+        //         {
+        //             conn.Open();
+        //             MySqlCommand cmd = new MySqlCommand(
+        //                 SqlCommand,
+        //                 conn);
+        //             // return cmd.ExecuteReader();
+
+        //             MySqlDataReader reader = cmd.ExecuteReader(
+        //                 CommandBehavior.CloseConnection);
+
+        //             return reader;
+        //         }
+        //     }
+        //     catch
+        //     {
+        //         return null;
+        //     }
+        // }
+
+        public T RunSqlCommand<T>(
+            string SqlCommand,
+            Func<MySqlDataReader, T> doThis)
         {
             try
             {
@@ -58,14 +85,47 @@ namespace SecureGit.WebApi.Logics
                     MySqlCommand cmd = new MySqlCommand(
                         SqlCommand,
                         conn);
-                    return cmd.ExecuteReader();
+                    // return cmd.ExecuteReader();
+
+                    // MySqlDataReader reader = cmd.ExecuteReader();
+
+                    // Since the MySqlDataReader will be disposed after quit from 'using' scope
+                    // I need to run the doThis so the RunSqlCommand() is reusable
+                    return doThis(cmd.ExecuteReader());
+
+                    // return reader;
                 }
             }
             catch
             {
-                return null;
+                return default(T);
             }
         }
+
+        // public bool RunSqlCommand(
+        //     string SqlCommand,
+        //     out MySqlDataReader DataReader)
+        // {
+        //     DataReader = null;
+
+        //     try
+        //     {
+        //         using (MySqlConnection conn = new MySqlConnection(ConnectionString))
+        //         {
+        //             conn.Open();
+        //             MySqlCommand cmd = new MySqlCommand(
+        //                 SqlCommand,
+        //                 conn);
+        //             DataReader = cmd.ExecuteReader();
+
+        //             return true;
+        //         }
+        //     }
+        //     catch
+        //     {
+        //         return false;
+        //     }
+        // }
 
         public List<User> GetAllUsers()
         {
